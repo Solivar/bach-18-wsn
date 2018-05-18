@@ -11,11 +11,72 @@ typedef struct {
     uint16_t id;
     uint16_t counter;
 } Payload_t;
-Payload_t Payload;
+
+typedef struct node {
+    u_int16_t id;
+    u_int16_t counter;
+    struct node* next;
+} node_t;
 
 static uint8_t radioBuffer[RADIO_MAX_PACKET];
+static node_t* head = NULL;
 
-void recvRadio(void) {
+int neighbourExists(uint16_t id) {
+    node_t* current = head;
+
+    while (current != NULL) {
+        if (current->id == id) {
+            return 1;
+        }
+
+        current = current->next;
+    }
+
+    return 0;
+}
+
+void updateNeighbour(uint16_t id, uint16_t counter) {
+    node_t* current = head;
+
+    while (current != NULL) {
+        if (current->id == id) {
+            PRINTF("Last counter: %d, new counter: %d\n", current->counter, counter);
+            if (counter - current->counter > 1) { // 0 means it's the first message, 1 means none were skipped
+                PRINTF("Missed counter detected: %d\n", current->id);
+            }
+
+            current->counter = counter;
+
+            break;
+        }
+
+        current = current->next;
+    }
+}
+
+void addNeighbour(uint16_t id, uint16_t counter) {
+    node_t* current = head;
+
+    while (current->next != NULL) {
+        current = current->next;
+    }
+
+    current->next = malloc(sizeof(node_t));
+    current->next->id = id;
+    current->next->counter = counter;
+    current->next->next = NULL;
+    PRINTF("Added neighbour: %d\n", id);
+}
+
+void addFirstNeighbour(uint16_t id, uint16_t counter) {
+    head = malloc(sizeof(node_t));
+    head->id = id;
+    head->counter = counter;
+    head->next = NULL;
+    PRINTF("Added first neighbour: %d\n", head->id);
+}
+
+void recvRadio() {
     int16_t len;
 
     len = radioRecv(radioBuffer, sizeof(radioBuffer));
@@ -26,6 +87,15 @@ void recvRadio(void) {
 
         if(recvPayload->key == KEY) {
             PRINTF("radio received from: %d with counter %d\n", recvPayload->id, recvPayload->counter);
+            if (head == NULL) {
+                addFirstNeighbour(recvPayload->id, recvPayload->counter);
+            }
+
+            if (neighbourExists(recvPayload->id) == 1) {
+                updateNeighbour(recvPayload->id, recvPayload->counter);
+            } else {
+                addNeighbour(recvPayload->id, recvPayload->counter);
+            }
         }
     }
 }
@@ -46,13 +116,11 @@ void appMain(void) {
         radioSend((void*)&message, sizeof(message));
         message.counter++;
 
-
         #ifdef ADDITIONAL_DELAY
             uint16_t random = randomInRange(1, 500);
             // 0.1s to 0.5s of delay
             uint16_t i = 0;
-            while(i <= random) {
-                i++;
+            while(i++ <= random) {
                 mdelay(1);
             }
         #endif

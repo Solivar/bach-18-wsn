@@ -5,6 +5,7 @@
 
 #define KEY 0xaa
 #define ADDITIONAL_DELAY
+// #define DEBUG_OUTPUT
 
 typedef struct {
     uint16_t key;
@@ -13,8 +14,8 @@ typedef struct {
 } Payload_t;
 
 typedef struct node {
-    u_int16_t id;
-    u_int16_t counter;
+    uint16_t id;
+    uint16_t counter;
     struct node* next;
 } node_t;
 
@@ -40,9 +41,16 @@ void updateNeighbour(uint16_t id, uint16_t counter) {
 
     while (current != NULL) {
         if (current->id == id) {
-            PRINTF("Last counter: %d, new counter: %d\n", current->counter, counter);
+            #ifdef DEBUG_OUTPUT
+                PRINTF("Last counter: %d, new counter: %d\n", current->counter, counter);
+            #endif
+
+            PRINTF("N %d %d %d\n", current->id, current->counter, counter);
+
             if (counter - current->counter > 1) { // 0 means it's the first message, 1 means none were skipped
-                PRINTF("Missed counter detected: %d\n", current->id);
+                #ifdef DEBUG_OUTPUT
+                    PRINTF("Missed counter detected: %d\n", current->id);
+                #endif
             }
 
             current->counter = counter;
@@ -65,7 +73,10 @@ void addNeighbour(uint16_t id, uint16_t counter) {
     current->next->id = id;
     current->next->counter = counter;
     current->next->next = NULL;
-    PRINTF("Added neighbour: %d\n", id);
+
+    #ifdef DEBUG_OUTPUT
+        PRINTF("Added neighbour: %d\n", id);
+    #endif
 }
 
 void addFirstNeighbour(uint16_t id, uint16_t counter) {
@@ -73,7 +84,10 @@ void addFirstNeighbour(uint16_t id, uint16_t counter) {
     head->id = id;
     head->counter = counter;
     head->next = NULL;
-    PRINTF("Added first neighbour: %d\n", head->id);
+
+    #ifdef DEBUG_OUTPUT
+        PRINTF("Added first neighbour: %d\n", head->id);
+    #endif
 }
 
 void recvRadio() {
@@ -82,11 +96,13 @@ void recvRadio() {
     len = radioRecv(radioBuffer, sizeof(radioBuffer));
 
     if (len == sizeof(Payload_t)) {
-        PRINTF("radio received %d bytes\n", len);
         Payload_t* recvPayload = (Payload_t*) &radioBuffer;
 
         if(recvPayload->key == KEY) {
-            PRINTF("radio received from: %d with counter %d\n", recvPayload->id, recvPayload->counter);
+            #ifdef DEBUG_OUTPUT
+                PRINTF("radio received from: %d with counter %d\n", recvPayload->id, recvPayload->counter);
+            #endif
+
             if (head == NULL) {
                 addFirstNeighbour(recvPayload->id, recvPayload->counter);
             }

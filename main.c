@@ -45,7 +45,7 @@ void updateNeighbour(uint16_t id, uint16_t counter) {
                 PRINTF("Last counter: %d, new counter: %d\n", current->counter, counter);
             #endif
 
-            PRINTF("N %d %d %d\n", current->id, current->counter, counter);
+            PRINTF("N %d %d %d %d\n", localAddress, current->id, current->counter, counter);
 
             if (counter - current->counter > 1) { // 0 means it's the first message, 1 means none were skipped
                 #ifdef DEBUG_OUTPUT

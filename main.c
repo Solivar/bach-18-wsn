@@ -5,7 +5,8 @@
 
 #define KEY 0xaa
 #define ADDITIONAL_DELAY
-// #define DEBUG_OUTPUT
+//#define ADDITIONAL_OUTPUT
+//#define DEBUG_OUTPUT
 
 typedef struct {
     uint16_t key;
@@ -45,12 +46,17 @@ void updateNeighbour(uint16_t id, uint16_t counter) {
                 PRINTF("Last counter: %d, new counter: %d\n", current->counter, counter);
             #endif
 
+            #ifdef ADDITIONAL_OUTPUT
+                int8_t rssi = radioGetLastRSSI();
+                uint8_t lqi = radioGetLastLQI();
+
+                PRINTF("N %d %d %d %d %d %d\n", localAddress, current->id, current->counter, counter, rssi, lqi);
+            #endif
+
             PRINTF("N %d %d %d %d\n", localAddress, current->id, current->counter, counter);
 
             if (counter - current->counter > 1) { // 0 means it's the first message, 1 means none were skipped
-                #ifdef DEBUG_OUTPUT
-                    PRINTF("Missed counter detected: %d\n", current->id);
-                #endif
+                PRINTF("M %d %d\n", localAddress, current->id);
             }
 
             current->counter = counter;
